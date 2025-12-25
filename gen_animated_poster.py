@@ -118,6 +118,7 @@ def generate_animation_frame(
     cell_width,
     cell_height,
     cols,
+    margin,
     scale_factor=1.0
 ):
     """
@@ -137,7 +138,8 @@ def generate_animation_frame(
     result = gradient_bg.copy()
     
     # 计算当前帧的偏移量（一个完整周期移动一个图片+间距的距离）
-    move_distance = column_heights[0] + config.POSTER_GEN_CONFIG["MARGIN"]  # 一个循环周期的移动距离
+    # 使用传入的已缩放 margin，确保与 column_heights 计算一致
+    move_distance = column_heights[0] + margin  # 一个循环周期的移动距离
     progress = frame_index / total_frames
     base_offset = int(progress * move_distance)
     
@@ -158,7 +160,7 @@ def generate_animation_frame(
         
         # 调整偏移确保在有效范围内
         crop_y_start = single_height // 2 + offset
-        crop_y_start = crop_y_start % (single_height + config.POSTER_GEN_CONFIG["MARGIN"])
+        crop_y_start = crop_y_start % (single_height + margin)
         
         # 裁剪出需要的部分
         cropped_column = extended_column.crop((
@@ -209,7 +211,7 @@ def generate_animation_frame(
     return result
 
 
-def add_text_overlay(result, name, poster_files, scale_factor=1.0):
+def add_text_overlay(result, name, poster_files, scale_factor=1.0, color_block_color=None):
     """
     在图片上添加文字和装饰（从gen_poster借用逻辑）
     
@@ -218,11 +220,14 @@ def add_text_overlay(result, name, poster_files, scale_factor=1.0):
         name: 媒体库名称
         poster_files: 海报文件列表
         scale_factor: 缩放比例，用于调整字体大小和位置
+        color_block_color: 色块颜色，如果为None则自动获取
     """
     import random
     
-    # 获取第一张图片的随机点颜色
-    if poster_files:
+    # 使用传入的色块颜色，或者获取第一张图片的随机点颜色
+    if color_block_color is not None:
+        random_color = color_block_color
+    elif poster_files:
         first_image_path = poster_files[0]
         random_color = get_random_color(first_image_path)
     else:
@@ -417,6 +422,9 @@ def gen_animated_poster_workflow(name):
         logger.info(f"[{config.JELLYFIN_CONFIG['SERVER_NAME']}][{name}] 正在生成 {frame_count} 帧动画...")
         frames = []
         
+        # 预先计算色块颜色，确保所有帧使用相同颜色避免闪烁
+        color_block_color = get_random_color(poster_files[0]) if poster_files else (128, 128, 128, 255)
+        
         for frame_index in range(frame_count):
             frame = generate_animation_frame(
                 gradient_bg,
@@ -431,16 +439,12 @@ def gen_animated_poster_workflow(name):
                 cell_width,
                 cell_height,
                 cols,
+                margin,
                 scale_factor
             )
             
-            # 只在第一帧添加文字（文字不动）
-            if frame_index == 0:
-                frame_with_text = add_text_overlay(frame, name, poster_files, scale_factor)
-                text_layer = frame_with_text
-            else:
-                # 其他帧也需要添加文字
-                frame = add_text_overlay(frame, name, poster_files, scale_factor)
+            # 每一帧都添加文字覆盖层，使用预先计算的色块颜色
+            frame = add_text_overlay(frame, name, poster_files, scale_factor, color_block_color)
             
             # 保持RGBA格式，在最后保存时统一处理
             frames.append(frame)
@@ -474,11 +478,16 @@ def gen_animated_poster_workflow(name):
             # GIF格式 - 使用抖动来减少色带
             gif_colors = config.ANIMATION_CONFIG.get("GIF_COLORS", 128)
             gif_frames = []
+            
+            # 基于第一帧生成全局调色板，所有帧共享同一调色板以避免文字闪烁
+            first_frame_rgb = frames[0].convert("RGB")
+            global_palette = first_frame_rgb.quantize(colors=gif_colors, method=Image.Quantize.MEDIANCUT)
+            
             for i, frame in enumerate(frames):
-                # 先转换为RGB（移除alpha通道），然后使用抖动转换为P模式
+                # 先转换为RGB（移除alpha通道）
                 frame_rgb = frame.convert("RGB")
-                # 使用FLOYDSTEINBERG抖动算法减少色带
-                frame_p = frame_rgb.convert("P", palette=Image.ADAPTIVE, colors=gif_colors, dither=Image.Dither.FLOYDSTEINBERG)
+                # 使用全局调色板进行量化，确保颜色一致性
+                frame_p = frame_rgb.quantize(palette=global_palette, dither=Image.Dither.FLOYDSTEINBERG)
                 gif_frames.append(frame_p)
             
             gif_frames[0].save(
