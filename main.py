@@ -13,6 +13,7 @@ from croniter import croniter
 # 导入自定义模块
 import config
 from gen_poster import gen_poster_workflow
+from gen_animated_poster import gen_animated_poster_workflow
 from get_library import get_libraries
 from get_poster import download_posters_workflow
 from update_poster import upload_poster_workflow
@@ -59,8 +60,13 @@ def process_libraries():
                 )
                 continue
 
-            # 3. 生成九宫格海报
-            gen_poster_workflow(current_library)
+            # 3. 生成海报（根据配置选择静态或动态）
+            if config.ANIMATION_CONFIG["ENABLED"]:
+                # 生成动态GIF海报
+                gen_animated_poster_workflow(current_library)
+            else:
+                # 生成静态PNG海报
+                gen_poster_workflow(current_library)
 
             # 4. 上传海报到Jellyfin
             if config.JELLYFIN_CONFIG["UPDATE_POSTER"]:  # 检查是否需要更新海报
@@ -69,7 +75,9 @@ def process_libraries():
                         f"[{jellyfin_config['SERVER_NAME']}][{current_library}] [4/4] 上传海报..."
                     )
                     logger.info("-" * 40)
-                    upload_poster_workflow(library["Id"], current_library)
+                    # 根据配置选择上传的文件格式
+                    use_gif = config.ANIMATION_CONFIG["ENABLED"]
+                    upload_poster_workflow(library["Id"], current_library, use_gif=use_gif)
                 else:
                     logger.info(
                         f"[{jellyfin_config['SERVER_NAME']}][{current_library}] [4/4] 不更新海报（在排除列表中）..."

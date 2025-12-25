@@ -28,14 +28,14 @@ def read_image_file(path):
         raise IOError(f"错误: 读取图片文件时出错: {e}")
 
 
-def upload_image(item_id, image_data, library_name):
+def upload_image(item_id, image_data, library_name, content_type="image/jpeg"):
     """上传图片到Jellyfin服务器"""
     try:
         # 构造 URL 和请求头
         url = f"{config.JELLYFIN_CONFIG['BASE_URL']}/Items/{item_id}/Images/{config.JELLYFIN_CONFIG['IMAGE_TYPE']}"
         headers = {
             "Authorization": f'MediaBrowser Token="{config.JELLYFIN_CONFIG["ACCESS_TOKEN"]}"',
-            "Content-Type": "Image/jpeg",
+            "Content-Type": content_type,
         }
         response = requests.post(url, headers=headers, data=image_data, timeout=30)
 
@@ -104,9 +104,14 @@ def add_shadow(img, offset=(5, 5), shadow_color=(0, 0, 0, 100), blur_radius=3):
     return shadow_img
 
 
-def upload_poster_workflow(item_id, name):
+def upload_poster_workflow(item_id, name, use_gif=False):
     """
     封装上传海报到Jellyfin的完整工作流程
+
+    参数:
+        item_id: Jellyfin媒体库ID
+        name: 媒体库名称
+        use_gif: 是否上传GIF格式（动态海报）
 
     返回:
         bool: 上传是否成功
@@ -117,12 +122,26 @@ def upload_poster_workflow(item_id, name):
         )
         logger.info("-" * 40)
 
-        file_path = os.path.join(config.OUTPUT_FOLDER, f"{name}.png")
+        # 根据格式选择文件路径和Content-Type
+        if use_gif:
+            file_path = os.path.join(config.OUTPUT_FOLDER, f"{name}.gif")
+            content_type = "image/gif"
+            logger.info(f"[{config.JELLYFIN_CONFIG['SERVER_NAME']}][{name}] 上传动态GIF海报")
+        else:
+            file_path = os.path.join(config.OUTPUT_FOLDER, f"{name}.png")
+            content_type = "image/png"
+            logger.info(f"[{config.JELLYFIN_CONFIG['SERVER_NAME']}][{name}] 上传静态PNG海报")
+        
+        # 检查文件是否存在
+        if not os.path.exists(file_path):
+            logger.error(f"[{config.JELLYFIN_CONFIG['SERVER_NAME']}][{name}] 海报文件不存在: {file_path}")
+            return False
+        
         # 读取图片文件
         image_data_base64 = read_image_file(file_path)
 
         # 上传图片
-        success = upload_image(item_id, image_data_base64, name)
+        success = upload_image(item_id, image_data_base64, name, content_type)
 
         if success:
             logger.info(

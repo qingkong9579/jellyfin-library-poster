@@ -177,3 +177,6 @@ output
 
 poster
 test.json
+Scripts/
+pyvenv.cfg
+.idea/

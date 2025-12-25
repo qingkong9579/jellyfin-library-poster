@@ -114,6 +114,18 @@ POSTER_DOWNLOAD_CONFIG = {
     "POSTER_DIR": POSTER_FOLDER,  # 海报保存目录
 }
 
+# 动画海报配置 - 从JSON读取，提供默认值
+_animation_json = JSON_CONFIG.get("animation_config", {})
+ANIMATION_CONFIG = {
+    "ENABLED": _animation_json.get("enabled", False),
+    "FRAME_COUNT": _animation_json.get("frame_count", 20),
+    "FRAME_DURATION": _animation_json.get("frame_duration", 80),
+    "OUTPUT_FORMAT": _animation_json.get("output_format", "GIF").upper(),
+    "OUTPUT_WIDTH": _animation_json.get("output_width", 1280),
+    "OUTPUT_HEIGHT": _animation_json.get("output_height", 720),
+    "GIF_COLORS": _animation_json.get("gif_colors", 128),
+}
+
 
 # 初始化认证信息
 def init_auth():

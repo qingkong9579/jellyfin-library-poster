@@ -28,6 +28,15 @@
       "style_eng_shadow_offset": [2, 2]
     }
   ],
+  "animation_config": {
+    "enabled": true,
+    "frame_count": 35,
+    "frame_duration": 70,
+    "output_format": "GIF",
+    "output_width": 480,
+    "output_height": 270,
+    "gif_colors": 128
+  },
   "template_mapping": [
     {
       "library_name": "Anime",
