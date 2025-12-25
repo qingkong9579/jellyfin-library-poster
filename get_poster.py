@@ -160,10 +160,18 @@ def download_image(item_id, output_path, index, library_name=None):
         return False
 
 
-def download_all_posters(selected_items, full_path, library_name):
-    """下载所有选定的海报，如果不足9张则重复下载"""
+def download_all_posters(selected_items, full_path, library_name, target_count=None):
+    """下载所有选定的海报，如果不足目标数量则重复下载
+    
+    参数:
+        selected_items: 选定的媒体项列表
+        full_path: 保存路径
+        library_name: 媒体库名称
+        target_count: 目标下载数量，如果为None则使用默认配置
+    """
     success_count = 0
-    target_count = config.POSTER_DOWNLOAD_CONFIG["POSTER_COUNT"]
+    if target_count is None:
+        target_count = config.POSTER_DOWNLOAD_CONFIG["POSTER_COUNT"]
     downloaded_items = []
 
     # 首先尝试下载所有可用的海报
@@ -233,9 +241,18 @@ def download_posters_workflow(parent_id, name):
             )
             return False, 0
 
+            # 根据动画配置决定下载数量
+        if config.ANIMATION_CONFIG.get("ENABLED", False):
+            poster_count = config.ANIMATION_CONFIG.get("POSTER_COUNT", 9)
+            logger.info(
+                f"[{config.JELLYFIN_CONFIG['SERVER_NAME']}][{name}] 动画模式启用，下载 {poster_count} 张海报"
+            )
+        else:
+            poster_count = config.POSTER_DOWNLOAD_CONFIG["POSTER_COUNT"]
+
         # 排序并选择媒体项
         selected_items = sort_and_select_items(
-            items, config.POSTER_DOWNLOAD_CONFIG["POSTER_COUNT"], name
+            items, poster_count, name
         )
         if not selected_items:
             logger.warning(
@@ -244,12 +261,12 @@ def download_posters_workflow(parent_id, name):
             return False, 0
 
         # 下载所有海报
-        success_count = download_all_posters(selected_items, full_path, name)
+        success_count = download_all_posters(selected_items, full_path, name, poster_count)
 
         # 输出结果
         if success_count > 0:
             logger.info(
-                f"[{config.JELLYFIN_CONFIG['SERVER_NAME']}][{name}] 成功下载 {success_count}/{config.POSTER_DOWNLOAD_CONFIG['POSTER_COUNT']} 张海报"
+                f"[{config.JELLYFIN_CONFIG['SERVER_NAME']}][{name}] 成功下载 {success_count}/{poster_count} 张海报"
             )
             logger.info(
                 f"[{config.JELLYFIN_CONFIG['SERVER_NAME']}][{name}] 海报已保存到: {full_path}"

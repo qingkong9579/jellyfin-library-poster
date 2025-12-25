@@ -340,9 +340,16 @@ def gen_animated_poster_workflow(name):
         output_path = os.path.join(config.OUTPUT_FOLDER, f"{name}.gif")
         
         # 从配置获取参数
-        rows = config.POSTER_GEN_CONFIG["ROWS"]
-        cols = config.POSTER_GEN_CONFIG["COLS"]
+        cols = config.POSTER_GEN_CONFIG["COLS"]  # 固定3列
         rotation_angle = config.POSTER_GEN_CONFIG["ROTATION_ANGLE"]
+        
+        # 从动画配置获取图片数量，动态计算行数
+        poster_count = config.ANIMATION_CONFIG.get("POSTER_COUNT", 9)
+        rows = poster_count // cols
+        if rows < 3:
+            rows = 3  # 最少3行
+        
+        logger.info(f"[{config.JELLYFIN_CONFIG['SERVER_NAME']}][{name}] 使用 {rows}行×{cols}列 布局，共 {rows * cols} 张图片")
         
         # 动画参数
         frame_count = config.ANIMATION_CONFIG["FRAME_COUNT"]
@@ -371,28 +378,43 @@ def gen_animated_poster_workflow(name):
         
         # 获取海报文件
         supported_formats = (".jpg", ".jpeg", ".png", ".bmp", ".gif", ".webp")
-        custom_order = "315426987"
-        order_map = {num: index for index, num in enumerate(custom_order)}
         
-        poster_files = sorted(
-            [
-                os.path.join(poster_folder, f)
-                for f in os.listdir(poster_folder)
-                if os.path.isfile(os.path.join(poster_folder, f))
-                and f.lower().endswith(supported_formats)
-                and os.path.splitext(f)[0] in order_map
-            ],
-            key=lambda x: order_map[os.path.splitext(os.path.basename(x))[0]],
-        )
+        # 根据实际图片数量生成排序顺序
+        # 按照列优先的交替顺序排列：第1列、第2列、第3列...
+        max_posters = rows * cols
+        
+        # 获取所有图片文件（按文件名数字排序）
+        all_poster_files = []
+        for f in os.listdir(poster_folder):
+            if os.path.isfile(os.path.join(poster_folder, f)) and f.lower().endswith(supported_formats):
+                try:
+                    # 提取文件名中的数字
+                    num = int(os.path.splitext(f)[0])
+                    all_poster_files.append((num, os.path.join(poster_folder, f)))
+                except ValueError:
+                    continue
+        
+        # 按数字排序
+        all_poster_files.sort(key=lambda x: x[0])
+        poster_files = [f[1] for f in all_poster_files[:max_posters]]
+        
+        # 重新排列为列优先顺序（按列分组后交替排列）
+        # 原始顺序: 1,2,3,4,5,6,7,8,9,10,11,12
+        # 列优先: 第1列(1,4,7,10), 第2列(2,5,8,11), 第3列(3,6,9,12)
+        # 最终顺序: 1,4,7,10, 2,5,8,11, 3,6,9,12
+        reordered_files = []
+        for col in range(cols):
+            for row in range(rows):
+                idx = row * cols + col
+                if idx < len(poster_files):
+                    reordered_files.append(poster_files[idx])
+        poster_files = reordered_files
         
         if not poster_files:
             logger.error(
                 f"[{config.JELLYFIN_CONFIG['SERVER_NAME']}][{name}] 错误: 在 {poster_folder} 中没有找到支持的图片文件"
             )
             return False
-        
-        max_posters = rows * cols
-        poster_files = poster_files[:max_posters]
         
         # 分组为列
         grouped_posters = [

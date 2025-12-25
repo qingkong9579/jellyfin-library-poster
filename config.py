@@ -116,8 +116,12 @@ POSTER_DOWNLOAD_CONFIG = {
 
 # 动画海报配置 - 从JSON读取，提供默认值
 _animation_json = JSON_CONFIG.get("animation_config", {})
+# 读取 poster_count，确保是3的倍数（因为固定3列），最少9张
+_poster_count = _animation_json.get("poster_count", 9)
+_poster_count = max(9, (_poster_count // 3) * 3)  # 确保是3的倍数且最少9张
 ANIMATION_CONFIG = {
     "ENABLED": _animation_json.get("enabled", False),
+    "POSTER_COUNT": _poster_count,
     "FRAME_COUNT": _animation_json.get("frame_count", 20),
     "FRAME_DURATION": _animation_json.get("frame_duration", 80),
     "OUTPUT_FORMAT": _animation_json.get("output_format", "GIF").upper(),
