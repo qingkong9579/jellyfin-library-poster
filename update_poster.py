@@ -111,7 +111,7 @@ def upload_poster_workflow(item_id, name, use_gif=False):
     参数:
         item_id: Jellyfin媒体库ID
         name: 媒体库名称
-        use_gif: 是否上传GIF格式（动态海报）
+        use_gif: 是否上传动画格式（GIF或WebP）
 
     返回:
         bool: 上传是否成功
@@ -124,9 +124,16 @@ def upload_poster_workflow(item_id, name, use_gif=False):
 
         # 根据格式选择文件路径和Content-Type
         if use_gif:
-            file_path = os.path.join(config.OUTPUT_FOLDER, f"{name}.gif")
-            content_type = "image/gif"
-            logger.info(f"[{config.JELLYFIN_CONFIG['SERVER_NAME']}][{name}] 上传动态GIF海报")
+            # 根据动画配置选择格式
+            output_format = config.ANIMATION_CONFIG.get("OUTPUT_FORMAT", "GIF").upper()
+            if output_format == "WEBP":
+                file_path = os.path.join(config.OUTPUT_FOLDER, f"{name}.webp")
+                content_type = "image/webp"
+                logger.info(f"[{config.JELLYFIN_CONFIG['SERVER_NAME']}][{name}] 上传动态WebP海报")
+            else:
+                file_path = os.path.join(config.OUTPUT_FOLDER, f"{name}.gif")
+                content_type = "image/gif"
+                logger.info(f"[{config.JELLYFIN_CONFIG['SERVER_NAME']}][{name}] 上传动态GIF海报")
         else:
             file_path = os.path.join(config.OUTPUT_FOLDER, f"{name}.png")
             content_type = "image/png"

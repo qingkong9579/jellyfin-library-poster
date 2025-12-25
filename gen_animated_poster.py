@@ -339,6 +339,14 @@ def gen_animated_poster_workflow(name):
         poster_folder = os.path.join(config.POSTER_FOLDER, name)
         output_path = os.path.join(config.OUTPUT_FOLDER, f"{name}.gif")
         
+        # 清理旧的动图文件（GIF和WebP）
+        old_gif = os.path.join(config.OUTPUT_FOLDER, f"{name}.gif")
+        old_webp = os.path.join(config.OUTPUT_FOLDER, f"{name}.webp")
+        for old_file in [old_gif, old_webp]:
+            if os.path.exists(old_file):
+                os.remove(old_file)
+                logger.info(f"[{config.JELLYFIN_CONFIG['SERVER_NAME']}][{name}] 已删除旧文件: {old_file}")
+        
         # 从配置获取参数
         cols = config.POSTER_GEN_CONFIG["COLS"]  # 固定3列
         rotation_angle = config.POSTER_GEN_CONFIG["ROTATION_ANGLE"]
@@ -488,14 +496,26 @@ def gen_animated_poster_workflow(name):
         if output_format == "WEBP":
             # 使用WebP格式，支持更多颜色和更好的压缩
             output_path = output_path.replace(".gif", ".webp")
-            frames[0].save(
+            
+            # 转换帧为RGBX格式（WebP动画需要）
+            webp_frames = []
+            for frame in frames:
+                # 转换为RGBX格式，移除alpha通道
+                webp_frame = frame.convert("RGBX")
+                webp_frames.append(webp_frame)
+            
+            # 保存为动态WebP
+            webp_frames[0].save(
                 output_path,
+                format="WEBP",
                 save_all=True,
-                append_images=frames[1:],
+                append_images=webp_frames[1:],
                 duration=frame_duration,
                 loop=0,
                 quality=85,
+                method=4,  # 压缩方法（0-6，越高越慢但压缩越好）
             )
+            logger.info(f"[{config.JELLYFIN_CONFIG['SERVER_NAME']}][{name}] WebP动画已保存")
         else:
             # GIF格式 - 使用抖动来减少色带
             gif_colors = config.ANIMATION_CONFIG.get("GIF_COLORS", 128)
@@ -520,13 +540,6 @@ def gen_animated_poster_workflow(name):
                 loop=0,
                 optimize=False,  # 关闭优化以保持颜色一致性
             )
-        
-        # 同时保存静态PNG预览图（用于不支持GIF的场景）
-        preview_path = output_path.replace(".gif", "_preview.png").replace(".webp", "_preview.png")
-        frames[0].save(preview_path, "PNG")
-        logger.info(
-            f"[{config.JELLYFIN_CONFIG['SERVER_NAME']}][{name}] 静态预览图已保存到 {preview_path}"
-        )
         
         logger.info(
             f"[{config.JELLYFIN_CONFIG['SERVER_NAME']}][{name}] 成功: 动态海报已保存到 {output_path}"
