@@ -24,16 +24,15 @@ jellyfin/Emby 根据媒体库里面的海报(默认最新的 9 张,没有时间�
 
 ### 📅 更新日期
 
-- 2025-04-29
+- 2025-12-25
 
 ### ✨ 新增功能
 
-- 增加文字阴影功能，可分别为中文和英文文本设置阴影效果
-- 文字阴影支持自定义偏移和透明度设置
+- 新增动态海报（GIF/WebP）生成功能
+- 支持自定义动态海报图片数量（9/12/15等）
+- 支持自定义动态海报分辨率、帧数、帧间隔
+- 支持GIF和WebP两种动画格式输出
 
-### 🐞 问题修复
-
-- 修复`Emby`随机排序方式无效
 
 ## 使用说明
 
@@ -136,6 +135,16 @@ python main.py
       "style_eng_shadow_offset": [2, 2]
     }
   ],
+  "animation_config": {
+    "enabled": false,
+    "poster_count": 9,
+    "frame_count": 60,
+    "frame_duration": 60,
+    "output_format": "WEBP",
+    "output_width": 560,
+    "output_height": 315,
+    "gif_colors": 256
+  },
   "template_mapping": [
     {
       "library_name": "Anime",
@@ -279,6 +288,34 @@ python main.py
 | style_eng_shadow       | 是否启用英文文字阴影                         | 否   | false     |
 | style_eng_shadow_offset| 英文文字阴影偏移量，格式为 [x, y]            | 否   | [2, 2]    |
 
+### `animation_config`节点 动态海报配置
+
+```json
+"animation_config": {
+  "enabled": false,
+  "poster_count": 9,
+  "frame_count": 60,
+  "frame_duration": 60,
+  "output_format": "WEBP",
+  "output_width": 560,
+  "output_height": 315,
+  "gif_colors": 256
+}
+```
+
+| 字段名         | 说明                                           | 必填 | 默认值 |
+| -------------- | ---------------------------------------------- | ---- | ------ |
+| enabled        | 是否启用动态海报生成                         | 否   | false  |
+| poster_count   | 动态海报使用的图片数量，必须是3的倍数（9/12/15等） | 否   | 9      |
+| frame_count    | 动画帧数                                       | 否   | 60     |
+| frame_duration | 每帧持续时间（毫秒）                           | 否   | 60     |
+| output_format  | 输出格式，支持 `GIF` 或 `WEBP`                  | 否   | WEBP   |
+| output_width   | 输出宽度（像素）                               | 否   | 560    |
+| output_height  | 输出高度（像素）                               | 否   | 315    |
+| gif_colors     | GIF调色板颜色数（仅GIF格式有效，最大256）       | 否   | 256    |
+
+> 💡 提示：WebP格式相比GIF拥有更小的文件体积和更好的画质，推荐使用WEBP格式。
+
 ### `template_mapping` 媒体库模板映射
 
 ```json
@@ -333,6 +370,11 @@ python main.py
 ## 历史更新
 
 ### 📅 更新日期
+
+- 2025-12-25
+  - 新增动态海报（GIF/WebP）生成功能
+  - 支持自定义动态海报图片数量、分辨率、帧数、帧间隔
+  - 支持GIF和WebP两种动画格式输出
 
 - 2025-04-29
   - 增加文字阴影功能，可分别为中文和英文文本设置阴影效果

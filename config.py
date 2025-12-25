@@ -122,12 +122,12 @@ _poster_count = max(9, (_poster_count // 3) * 3)  # 确保是3的倍数且最少
 ANIMATION_CONFIG = {
     "ENABLED": _animation_json.get("enabled", False),
     "POSTER_COUNT": _poster_count,
-    "FRAME_COUNT": _animation_json.get("frame_count", 20),
-    "FRAME_DURATION": _animation_json.get("frame_duration", 80),
-    "OUTPUT_FORMAT": _animation_json.get("output_format", "GIF").upper(),
-    "OUTPUT_WIDTH": _animation_json.get("output_width", 1280),
-    "OUTPUT_HEIGHT": _animation_json.get("output_height", 720),
-    "GIF_COLORS": _animation_json.get("gif_colors", 128),
+    "FRAME_COUNT": _animation_json.get("frame_count", 60),
+    "FRAME_DURATION": _animation_json.get("frame_duration", 60),
+    "OUTPUT_FORMAT": _animation_json.get("output_format", "WEBP").upper(),
+    "OUTPUT_WIDTH": _animation_json.get("output_width", 560),
+    "OUTPUT_HEIGHT": _animation_json.get("output_height", 315),
+    "GIF_COLORS": _animation_json.get("gif_colors", 256),
 }
 
 

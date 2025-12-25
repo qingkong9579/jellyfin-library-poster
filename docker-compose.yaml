@@ -1,0 +1,13 @@
+services:
+  jellyfin-library-poster:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: jellyfin-library-poster
+    volumes:
+      - ./config:/app/config
+      - ./poster:/app/poster
+      - ./output:/app/output
+      - ./logs:/app/logs
+      - ./myfont:/app/myfont
+    restart: unless-stopped
